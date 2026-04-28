@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星际选秀大会 - 加权平均数</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            min-height: 100vh;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            animation: float 15s infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; }
+        }
+
+        .start-screen {
+            text-align: center;
+            padding: 60px 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .start-screen h1 {
+            font-size: 4em;
+            font-weight: 300;
+            letter-spacing: 10px;
+            background: linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+            animation: glow 3s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { filter: drop-shadow(0 0 20px rgba(255,107,107,0.5)); }
+            50% { filter: drop-shadow(0 0 40px rgba(72,219,251,0.8)); }
+        }
+
+        .start-screen .subtitle {
+            font-size: 1.5em;
+            color: #a0a0a0;
+            margin-bottom: 40px;
+            letter-spacing: 5px;
+        }
+
+        .contestants-preview {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+            margin: 50px 0;
+        }
+
+        .preview-card {
+            width: 150px;
+            height: 200px;
+            background: linear-gradient(145deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.5s;
+        }
+
+        .preview-card:hover {
+            transform: translateY(-10px) scale(1.05);
+            border-color: rgba(255,255,255,0.3);
+        }
+
+        .preview-avatar {
+            font-size: 60px;
+            margin-bottom: 15px;
+        }
+
+        .preview-name {
+            font-size: 1.3em;
+            font-weight: bold;
+        }
+
+        .preview-tags {
+            font-size: 0.8em;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .start-btn {
+            padding: 25px 80px;
+            font-size: 1.5em;
+            border: none;
+            border-radius: 50px;
+            background: linear-gradient(90deg, #ff6b6b, #feca57);
+            color: #1a1a2e;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            letter-spacing: 3px;
+            margin-top: 30px;
+        }
+
+        .start-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 40px rgba(254,202,87,0.5);
+        }
+
+        .intro-text {
+            max-width: 700px;
+            margin: 30px auto;
+            font-size: 1.2em;
+            color: #b0b0b0;
+            line-height: 1.8;
+        }
+
+        .game-screen {
+            display: none;
+            position: relative;
+            z-index: 1;
+        }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 30px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 20px;
+            margin-bottom: 30px;
+        }
+
+        .round-info {
+            font-size: 1.3em;
+            color: #feca57;
+            letter-spacing: 2px;
+        }
+
+        .round-name {
+            font-size: 0.9em;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .timer {
+            font-size: 2em;
+            color: #48dbfb;
+            font-family: monospace;
+        }
+
+        .score-display {
+            text-align: right;
+        }
+
+        .score-label {
+            font-size: 0.9em;
+            color: #888;
+        }
+
+        .score-value {
+            font-size: 1.8em;
+            color: #ff6b6b;
+            font-weight: bold;
+        }
+
+        .contestants-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .contestant-card {
+            background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+            border-radius: 25px;
+            padding: 25px;
+            border: 2px solid rgba(255,255,255,0.1);
+            transition: all 0.5s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .contestant-card.top-1 {
+            border-color: #feca57;
+            box-shadow: 0 0 30px rgba(254,202,87,0.3);
+        }
+
+        .contestant-card.top-2 {
+            border-color: #c0c0c0;
+        }
+
+        .contestant-card.top-3 {
+            border-color: #cd7f32;
+        }
+
+        .rank-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3em;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .contestant-card.top-1 .rank-badge { background: linear-gradient(135deg, #feca57, #ff9f43); }
+        .contestant-card.top-2 .rank-badge { background: linear-gradient(135deg, #c0c0c0, #a0a0a0); }
+        .contestant-card.top-3 .rank-badge { background: linear-gradient(135deg, #cd7f32, #b8860b); }
+
+        .card-avatar {
+            font-size: 70px;
+            text-align: center;
+            margin: 15px 0;
+        }
+
+        .card-name {
+            text-align: center;
+            font-size: 1.6em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .card-traits {
+            text-align: center;
+            font-size: 0.9em;
+            color: #888;
+            margin-bottom: 20px;
+        }
+
+        .score-bars {
+            display: grid;
+            gap: 12px;
+        }
+
+        .score-bar-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .score-bar-label {
+            width: 80px;
+            font-size: 0.9em;
+            color: #aaa;
+        }
+
+        .score-bar-track {
+            flex: 1;
+            height: 12px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .score-bar-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.8s ease;
+        }
+
+        .score-bar-fill.A { background: linear-gradient(90deg, #ff6b6b, #ee5a5a); }
+        .score-bar-fill.B { background: linear-gradient(90deg, #48dbfb, #00d2d3); }
+        .score-bar-fill.C { background: linear-gradient(90deg, #feca57, #f9ca24); }
+
+        .weighted-score {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .weighted-score-label {
+            font-size: 0.9em;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .weighted-score-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #48dbfb;
+        }
+
+        .contestant-card.top-1 .weighted-score-value { color: #feca57; }
+        .contestant-card.top-2 .weighted-score-value { color: #c0c0c0; }
+        .contestant-card.top-3 .weighted-score-value { color: #cd7f32; }
+
+        .weight-panel {
+            background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+            border-radius: 25px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .weight-panel h2 {
+            text-align: center;
+            font-size: 1.5em;
+            margin-bottom: 30px;
+            color: #feca57;
+            letter-spacing: 3px;
+        }
+
+        .weight-sliders {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .weight-group {
+            text-align: center;
+            padding: 25px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 20px;
+        }
+
+        .weight-group .icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+
+        .weight-group .label {
+            font-size: 1.1em;
+            color: #aaa;
+            margin-bottom: 15px;
+        }
+
+        .weight-group .value {
+            font-size: 3em;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 15px;
+        }
+
+        .weight-group.A .value { color: #ff6b6b; }
+        .weight-group.B .value { color: #48dbfb; }
+        .weight-group.C .value { color: #feca57; }
+
+        .weight-slider {
+            width: 100%;
+            height: 10px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+            outline: none;
+        }
+
+        .weight-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .weight-group.A .weight-slider::-webkit-slider-thumb { background: #ff6b6b; }
+        .weight-group.B .weight-slider::-webkit-slider-thumb { background: #48dbfb; }
+        .weight-group.C .weight-slider::-webkit-slider-thumb { background: #feca57; }
+
+        .weight-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.3);
+        }
+
+        .presets {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .preset-btn {
+            padding: 12px 25px;
+            border: 2px solid rgba(255,255,255,0.2);
+            background: transparent;
+            color: #fff;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1em;
+        }
+
+        .preset-btn:hover, .preset-btn.active {
+            border-color: #48dbfb;
+            background: rgba(72,219,251,0.2);
+            color: #48dbfb;
+        }
+
+        .leaderboard {
+            background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+            border-radius: 25px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .leaderboard h2 {
+            text-align: center;
+            font-size: 1.3em;
+            margin-bottom: 25px;
+            color: #ff6b6b;
+            letter-spacing: 3px;
+        }
+
+        .leaderboard-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .leaderboard-item {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 15px;
+            transition: all 0.5s;
+        }
+
+        .leaderboard-item .rank {
+            width: 35px;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #888;
+        }
+
+        .leaderboard-item:nth-child(1) .rank { color: #feca57; }
+        .leaderboard-item:nth-child(2) .rank { color: #c0c0c0; }
+        .leaderboard-item:nth-child(3) .rank { color: #cd7f32; }
+
+        .leaderboard-item .avatar {
+            font-size: 25px;
+            margin-right: 15px;
+        }
+
+        .leaderboard-item .name {
+            flex: 1;
+            font-size: 1.1em;
+        }
+
+        .leaderboard-item .score {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #48dbfb;
+        }
+
+        .leaderboard-item:nth-child(1) .score { color: #feca57; }
+        .leaderboard-item:nth-child(2) .score { color: #c0c0c0; }
+        .leaderboard-item:nth-child(3) .score { color: #cd7f32; }
+
+        .result-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .result-overlay.show {
+            display: flex;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .result-modal {
+            background: linear-gradient(145deg, #1a1a2e, #16213e);
+            border-radius: 30px;
+            padding: 50px;
+            text-align: center;
+            max-width: 600px;
+            border: 2px solid rgba(255,255,255,0.1);
+            animation: scaleIn 0.5s;
+        }
+
+        @keyframes scaleIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .result-icon {
+            font-size: 100px;
+            margin-bottom: 20px;
+            animation: bounce 1s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .result-title {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #feca57, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .result-subtitle {
+            font-size: 1.2em;
+            color: #888;
+            margin-bottom: 30px;
+        }
+
+        .result-scores {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .result-contestant {
+            padding: 20px 30px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+        }
+
+        .result-contestant .avatar {
+            font-size: 50px;
+        }
+
+        .result-contestant .name {
+            font-size: 1.2em;
+            margin: 10px 0;
+        }
+
+        .result-contestant .score {
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .result-contestant.winner {
+            border: 2px solid #feca57;
+            background: rgba(254,202,87,0.1);
+        }
+
+        .result-contestant.winner .score {
+            color: #feca57;
+        }
+
+        .next-btn {
+            margin-top: 30px;
+            padding: 18px 50px;
+            font-size: 1.2em;
+            border: none;
+            border-radius: 30px;
+            background: linear-gradient(90deg, #ff6b6b, #feca57);
+            color: #1a1a2e;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .next-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .reflection-screen {
+            display: none;
+            text-align: center;
+            padding: 80px 40px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .reflection-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .reflection-quote {
+            font-size: 2em;
+            line-height: 1.6;
+            color: #fff;
+            margin-bottom: 40px;
+        }
+
+        .reflection-quote .highlight {
+            color: #feca57;
+            font-weight: bold;
+        }
+
+        .reflection-text {
+            font-size: 1.3em;
+            color: #b0b0b0;
+            line-height: 1.8;
+            margin-bottom: 30px;
+        }
+
+        .reflection-highlight {
+            font-size: 1.5em;
+            color: #48dbfb;
+            margin: 40px 0;
+            padding: 30px;
+            background: rgba(72,219,251,0.1);
+            border-radius: 20px;
+            border: 1px solid rgba(72,219,251,0.3);
+        }
+
+        .restart-btn {
+            margin-top: 40px;
+            padding: 18px 50px;
+            font-size: 1.2em;
+            border: 2px solid #48dbfb;
+            border-radius: 30px;
+            background: transparent;
+            color: #48dbfb;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .restart-btn:hover {
+            background: #48dbfb;
+            color: #1a1a2e;
+        }
+
+        .fireworks {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        .firework {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: explode 1s forwards;
+        }
+
+        @keyframes explode {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(20); opacity: 0; }
+        }
+
+        @media (max-width: 768px) {
+            .start-screen h1 { font-size: 2.5em; }
+            .contestants-grid { grid-template-columns: 1fr 1fr; gap: 15px; }
+            .card-avatar { font-size: 50px; }
+            .card-name { font-size: 1.2em; }
+            .weight-group .value { font-size: 2em; }
+            .result-modal { padding: 30px; margin: 20px; }
+            .result-icon { font-size: 60px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+
+    <div class="container">
+        <div class="start-screen" id="startScreen">
+            <h1>星际选秀大会</h1>
+            <p class="subtitle">★ 加权平均数挑战 ★</p>
+
+            <p class="intro-text">
+                欢迎来到宇宙最盛大的选秀舞台！<br>
+                四位来自不同星球的选手将争夺唯一的出道名额。<br>
+                你作为首席评审官，可以通过调整三项能力的权重<br>
+                <strong style="color:#feca57">决定谁能成为最终的超级偶像！</strong>
+            </p>
+
+            <div class="contestants-preview">
+                <div class="preview-card">
+                    <div class="preview-avatar">🚀</div>
+                    <div class="preview-name">星火少年</div>
+                    <div class="preview-tags">创新力Max | 稳定性低</div>
+                </div>
+                <div class="preview-card">
+                    <div class="preview-avatar">🛡️</div>
+                    <div class="preview-name">稳重大叔</div>
+                    <div class="preview-tags">稳定性Max | 创新力低</div>
+                </div>
+                <div class="preview-card">
+                    <div class="preview-avatar">🤝</div>
+                    <div class="preview-name">社交达人</div>
+                    <div class="preview-tags">协作力Max | 稳定性低</div>
+                </div>
+                <div class="preview-card">
+                    <div class="preview-avatar">⚡</div>
+                    <div class="preview-name">全能选手</div>
+                    <div class="preview-tags">三项均衡 | 稳定发挥</div>
+                </div>
+            </div>
+
+            <button class="start-btn" onclick="startGame()">🎤 开启选秀之旅</button>
+        </div>
+
+        <div class="game-screen" id="gameScreen">
+            <div class="game-header">
+                <div>
+                    <div class="round-info">ROUND <span id="roundNum">1</span></div>
+                    <div class="round-name" id="roundName">创新力考验</div>
+                </div>
+                <div class="timer" id="timer">⏱️ 00:00</div>
+                <div class="score-display">
+                    <div class="score-label">你的评审积分</div>
+                    <div class="score-value" id="playerScore">0</div>
+                </div>
+            </div>
+
+            <div class="contestants-grid" id="contestantsGrid"></div>
+
+            <div class="weight-panel">
+                <h2>⚖️ 调整评审权重</h2>
+                <div class="weight-sliders">
+                    <div class="weight-group A">
+                        <div class="icon">💡</div>
+                        <div class="label">创新力 (A)</div>
+                        <div class="value" id="weightAVal">5</div>
+                        <input type="range" class="weight-slider" id="weightA" min="1" max="10" value="5" oninput="updateWeights()">
+                    </div>
+                    <div class="weight-group B">
+                        <div class="icon">🛡️</div>
+                        <div class="label">稳定性 (B)</div>
+                        <div class="value" id="weightBVal">5</div>
+                        <input type="range" class="weight-slider" id="weightB" min="1" max="10" value="5" oninput="updateWeights()">
+                    </div>
+                    <div class="weight-group C">
+                        <div class="icon">🤝</div>
+                        <div class="label">协作力 (C)</div>
+                        <div class="value" id="weightCVal">5</div>
+                        <input type="range" class="weight-slider" id="weightC" min="1" max="10" value="5" oninput="updateWeights()">
+                    </div>
+                </div>
+                <div class="presets">
+                    <button class="preset-btn" onclick="applyPreset('innovation')">💡 创新优先 (8:1:1)</button>
+                    <button class="preset-btn" onclick="applyPreset('stable')">🛡️ 稳定优先 (1:8:1)</button>
+                    <button class="preset-btn" onclick="applyPreset('teamwork')">🤝 协作优先 (1:1:8)</button>
+                    <button class="preset-btn" onclick="applyPreset('balanced')">⚖️ 均衡发展 (1:1:1)</button>
+                    <button class="preset-btn" onclick="applyPreset('random')">🎲 随机权重</button>
+                </div>
+            </div>
+
+            <div class="leaderboard">
+                <h2>🏆 实时排行榜</h2>
+                <div class="leaderboard-list" id="leaderboard"></div>
+            </div>
+
+            <div style="text-align: center; margin-top: 30px;">
+                <button class="next-btn" onclick="showResult()" style="margin-right: 20px;">📊 查看本轮结果</button>
+                <button class="next-btn" onclick="showReflection()" style="background: linear-gradient(90deg, #48dbfb, #48dbfb);">🌟 教师寄语</button>
+            </div>
+        </div>
+
+        <div class="reflection-screen" id="reflectionScreen">
+            <div class="reflection-content">
+                <div style="font-size: 80px; margin-bottom: 30px;">🌌</div>
+
+                <div class="reflection-quote">
+                    "世上本无绝对的<span class="highlight">'最优解'</span>，<br>
+                    只有不同的<span class="highlight">'权重选择'</span>。"
+                </div>
+
+                <div class="reflection-text">
+                    在刚才的选秀中，你可能注意到了：<br>
+                    当你改变权重时，排名就会改变。<br>
+                    <strong style="color:#48dbfb">星火少年</strong>在创新优先时获胜，<br>
+                    <strong style="color:#48dbfb">稳重大叔</strong>在稳定优先时逆袭，<br>
+                    <strong style="color:#48dbfb">社交达人</strong>在协作优先时脱颖而出。
+                </div>
+
+                <div class="reflection-highlight">
+                    💫 每个人都有自己的闪光点，<br>
+                    只是需要在适合自己的"权重"下展现。
+                </div>
+
+                <div class="reflection-text">
+                    在生活中，你可能在某个评价体系下表现平平，<br>
+                    但请不要否定自己。<br><br>
+                    <strong style="color:#feca57; font-size: 1.5em;">
+                        当你为自己的特质赋予更高的权重时，<br>
+                        在属于你的坐标系里，你永远是唯一的满分。
+                    </strong>
+                </div>
+
+                <button class="restart-btn" onclick="restartGame()">🔄 再玩一次</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="result-overlay" id="resultOverlay">
+        <div class="result-modal">
+            <div class="result-icon" id="resultIcon">🎉</div>
+            <div class="result-title" id="resultTitle">本轮结果</div>
+            <div class="result-subtitle" id="resultSubtitle">恭喜你找到了最优权重！</div>
+            <div class="result-scores" id="resultScores"></div>
+            <button class="next-btn" onclick="nextRound()">下一轮 ➡️</button>
+        </div>
+    </div>
+
+    <div class="fireworks" id="fireworks"></div>
+
+    <script>
+        const contestants = [
+            { id: 1, name: '星火少年', avatar: '🚀', scores: { A: 95, B: 40, C: 55 } },
+            { id: 2, name: '稳重大叔', avatar: '🛡️', scores: { A: 45, B: 95, C: 50 } },
+            { id: 3, name: '社交达人', avatar: '🤝', scores: { A: 50, B: 45, C: 95 } },
+            { id: 4, name: '全能选手', avatar: '⚡', scores: { A: 70, B: 70, C: 70 } }
+        ];
+
+        let weights = { A: 5, B: 5, C: 5 };
+        let currentRound = 1;
+        let totalRounds = 3;
+        let playerScore = 0;
+        let timerInterval = null;
+        let elapsedSeconds = 0;
+
+        const roundNames = ['创新力考验', '稳定性考验', '协作力考验'];
+        const presetConfigs = {
+            innovation: { A: 8, B: 1, C: 1 },
+            stable: { A: 1, B: 8, C: 1 },
+            teamwork: { A: 1, B: 1, C: 8 },
+            balanced: { A: 1, B: 1, C: 1 }
+        };
+
+        function createParticles() {
+            const container = document.getElementById('particles');
+            for (let i = 0; i < 30; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 15 + 's';
+                particle.style.animationDuration = (10 + Math.random() * 10) + 's';
+                container.appendChild(particle);
+            }
+        }
+
+        function startGame() {
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'block';
+            document.getElementById('reflectionScreen').style.display = 'none';
+            currentRound = 1;
+            playerScore = 0;
+            updateUI();
+            applyPreset('balanced');
+            startTimer();
+        }
+
+        function startTimer() {
+            elapsedSeconds = 0;
+            updateTimerDisplay();
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                elapsedSeconds++;
+                updateTimerDisplay();
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const mins = Math.floor(elapsedSeconds / 60).toString().padStart(2, '0');
+            const secs = (elapsedSeconds % 60).toString().padStart(2, '0');
+            document.getElementById('timer').textContent = `⏱️ ${mins}:${secs}`;
+        }
+
+        function updateUI() {
+            document.getElementById('roundNum').textContent = currentRound;
+            document.getElementById('roundName').textContent = roundNames[currentRound - 1];
+            document.getElementById('playerScore').textContent = playerScore;
+            renderContestants();
+            renderLeaderboard();
+        }
+
+        function renderContestants() {
+            const grid = document.getElementById('contestantsGrid');
+            grid.innerHTML = '';
+
+            const totalWeight = weights.A + weights.B + weights.C;
+            const calculatedScores = contestants.map(c => ({
+                ...c,
+                weightedScore: (c.scores.A * weights.A + c.scores.B * weights.B + c.scores.C * weights.C) / totalWeight
+            }));
+
+            calculatedScores.sort((a, b) => b.weightedScore - a.weightedScore);
+
+            calculatedScores.forEach((contestant, index) => {
+                const rank = index + 1;
+                let rankClass = '';
+                if (rank === 1) rankClass = 'top-1';
+                else if (rank === 2) rankClass = 'top-2';
+                else if (rank === 3) rankClass = 'top-3';
+
+                const card = document.createElement('div');
+                card.className = `contestant-card ${rankClass}`;
+                card.innerHTML = `
+                    <div class="rank-badge">${rank}</div>
+                    <div class="card-avatar">${contestant.avatar}</div>
+                    <div class="card-name">${contestant.name}</div>
+                    <div class="card-traits">加权总分</div>
+                    <div class="score-bars">
+                        <div class="score-bar-item">
+                            <span class="score-bar-label">💡创新力</span>
+                            <div class="score-bar-track">
+                                <div class="score-bar-fill A" style="width: ${contestant.scores.A}%"></div>
+                            </div>
+                        </div>
+                        <div class="score-bar-item">
+                            <span class="score-bar-label">🛡️稳定性</span>
+                            <div class="score-bar-track">
+                                <div class="score-bar-fill B" style="width: ${contestant.scores.B}%"></div>
+                            </div>
+                        </div>
+                        <div class="score-bar-item">
+                            <span class="score-bar-label">🤝协作力</span>
+                            <div class="score-bar-track">
+                                <div class="score-bar-fill C" style="width: ${contestant.scores.C}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="weighted-score">
+                        <div class="weighted-score-label">综合得分</div>
+                        <div class="weighted-score-value">${contestant.weightedScore.toFixed(1)}</div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function renderLeaderboard() {
+            const list = document.getElementById('leaderboard');
+            list.innerHTML = '';
+
+            const totalWeight = weights.A + weights.B + weights.C;
+            const sorted = contestants.map(c => ({
+                ...c,
+                weightedScore: (c.scores.A * weights.A + c.scores.B * weights.B + c.scores.C * weights.C) / totalWeight
+            })).sort((a, b) => b.weightedScore - a.weightedScore);
+
+            sorted.forEach((contestant, index) => {
+                const item = document.createElement('div');
+                item.className = 'leaderboard-item';
+                item.innerHTML = `
+                    <div class="rank">${index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '#' + (index + 1)}</div>
+                    <div class="avatar">${contestant.avatar}</div>
+                    <div class="name">${contestant.name}</div>
+                    <div class="score">${contestant.weightedScore.toFixed(1)}</div>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function updateWeights() {
+            weights.A = parseInt(document.getElementById('weightA').value);
+            weights.B = parseInt(document.getElementById('weightB').value);
+            weights.C = parseInt(document.getElementById('weightC').value);
+
+            document.getElementById('weightAVal').textContent = weights.A;
+            document.getElementById('weightBVal').textContent = weights.B;
+            document.getElementById('weightCVal').textContent = weights.C;
+
+            renderContestants();
+            renderLeaderboard();
+
+            document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+        }
+
+        function applyPreset(type) {
+            let config;
+            if (type === 'random') {
+                config = {
+                    A: Math.floor(Math.random() * 8) + 1,
+                    B: Math.floor(Math.random() * 8) + 1,
+                    C: Math.floor(Math.random() * 8) + 1
+                };
+            } else {
+                config = presetConfigs[type];
+            }
+
+            document.getElementById('weightA').value = config.A;
+            document.getElementById('weightB').value = config.B;
+            document.getElementById('weightC').value = config.C;
+            updateWeights();
+
+            if (type !== 'random' && event) {
+                document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+                event.target.classList.add('active');
+            }
+        }
+
+        function calculateScores() {
+            const totalWeight = weights.A + weights.B + weights.C;
+            return contestants.map(c => ({
+                ...c,
+                weightedScore: (c.scores.A * weights.A + c.scores.B * weights.B + c.scores.C * weights.C) / totalWeight
+            })).sort((a, b) => b.weightedScore - a.weightedScore);
+        }
+
+        function showResult() {
+            const sorted = calculateScores();
+            const winner = sorted[0];
+            const overlay = document.getElementById('resultOverlay');
+
+            const basePoints = 100;
+            const bonusPoints = Math.max(0, 50 - elapsedSeconds);
+            playerScore += basePoints + bonusPoints;
+            document.getElementById('playerScore').textContent = playerScore;
+
+            let resultText = '';
+            if ((weights.A >= 7 && winner.id === 1) ||
+                (weights.B >= 7 && winner.id === 2) ||
+                (weights.C >= 7 && winner.id === 3) ||
+                (weights.A <= 3 && weights.B <= 3 && weights.C <= 3 && winner.id === 4)) {
+                resultText = '完美评审！发现了最合适的选手！';
+                createFireworks();
+            } else if (winner.id === 4) {
+                resultText = '均衡发展，全能选手胜出！';
+            } else {
+                resultText = '权重调整完成！';
+            }
+
+            document.getElementById('resultIcon').textContent = '🏆';
+            document.getElementById('resultTitle').textContent = `第 ${currentRound} 轮结果`;
+            document.getElementById('resultSubtitle').textContent = resultText;
+
+            const scoresDiv = document.getElementById('resultScores');
+            scoresDiv.innerHTML = sorted.slice(0, 4).map((c, i) => `
+                <div class="result-contestant ${i === 0 ? 'winner' : ''}">
+                    <div class="avatar">${c.avatar}</div>
+                    <div class="name">${c.name}</div>
+                    <div class="score">${c.weightedScore.toFixed(1)}</div>
+                </div>
+            `).join('');
+
+            document.querySelector('.next-btn').textContent = currentRound >= totalRounds ? '🌟 查看感悟' : '下一轮 ➡️';
+
+            overlay.classList.add('show');
+        }
+
+        function nextRound() {
+            document.getElementById('resultOverlay').classList.remove('show');
+
+            if (currentRound >= totalRounds) {
+                showReflection();
+                return;
+            }
+
+            currentRound++;
+            startTimer();
+            updateUI();
+
+            if (currentRound === 2) {
+                applyPreset('stable');
+            } else if (currentRound === 3) {
+                applyPreset('teamwork');
+            }
+        }
+
+        function showReflection() {
+            document.getElementById('gameScreen').style.display = 'none';
+            document.getElementById('reflectionScreen').style.display = 'block';
+            document.getElementById('resultOverlay').classList.remove('show');
+            createFireworks();
+        }
+
+        function restartGame() {
+            document.getElementById('reflectionScreen').style.display = 'none';
+            document.getElementById('startScreen').style.display = 'block';
+            if (timerInterval) clearInterval(timerInterval);
+        }
+
+        function createFireworks() {
+            const container = document.getElementById('fireworks');
+            container.innerHTML = '';
+
+            const colors = ['#ff6b6b', '#feca57', '#48dbfb', '#ff9ff3', '#2ecc71'];
+
+            for (let i = 0; i < 20; i++) {
+                setTimeout(() => {
+                    const firework = document.createElement('div');
+                    firework.className = 'firework';
+                    firework.style.left = Math.random() * 100 + '%';
+                    firework.style.top = Math.random() * 60 + '%';
+                    firework.style.background = colors[Math.floor(Math.random() * colors.length)];
+                    firework.style.boxShadow = `0 0 20px ${firework.style.background}`;
+                    container.appendChild(firework);
+
+                    setTimeout(() => firework.remove(), 1000);
+                }, i * 100);
+            }
+        }
+
+        createParticles();
+    </script>
+</body>
+</html>
